@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace PartyHero.Data
 {
@@ -20,9 +21,10 @@ namespace PartyHero.Data
 
         public Game()
         {
-            Tags = new List<Tag>();
+            GameTags = new List<GameTag>();
         }
 
+        [Key]
         public string Name { get; set; }
         public string Description { get; set; }
         public string Crc { get; set; }
@@ -31,7 +33,7 @@ namespace PartyHero.Data
         public string Genre { get; set; }
         public string Rating { get; set; }
         public string CloneOf { get; set; }
-        public ICollection<Tag> Tags { get; set; }
+        public ICollection<GameTag> GameTags { get; set; }
         public bool Enabled { get; set; }
     }
 }

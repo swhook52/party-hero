@@ -1,8 +1,7 @@
 ﻿using PartyHero.Data;
-using System.Collections.Generic;
 using PartyHero.Service.Exceptions;
-using PartyHero.Service.Stores;
 using System.Linq;
+using PartyHero.Data.Stores;
 
 namespace PartyHero.Service
 {
@@ -10,12 +9,13 @@ namespace PartyHero.Service
     {
         Tag GetOrCreate(string name);
         void Add(Game game, string tagName);
+        void Add(Collection collection, string tagName);
         void Remove(Game game, string tagName);
     }
 
     public class TagService : ITagService
     {
-        private IDataStore _store;
+        private readonly IDataStore _store;
 
         public TagService(IDataStore store)
         {
@@ -24,11 +24,12 @@ namespace PartyHero.Service
 
         private Tag GetTag(string name)
         {
-            var tags = _store.Tags.FindAll(p => p.Name == name);
-            if (!tags.Any())
+            var lowercaseName = name.ToLower();
+            var tag = _store.Tags.SingleOrDefault(p => p.Name.ToLower() == lowercaseName);
+            if (tag == null)
                 throw new TagNotFoundException(name);
 
-            return tags.First();
+            return tag;
         }
 
         public void Add(Game game, string tagName)
@@ -43,13 +44,30 @@ namespace PartyHero.Service
                 tag = CreateTag(tagName);
             }
 
-            if (!game.Tags.Contains(tag))
-                game.Tags.Add(tag);
+            if (game.GameTags.All(p => p.TagName != tag.Name))
+                game.GameTags.Add(new GameTag { Game = game, Tag = tag });
+        }
+
+        public void Add(Collection collection, string tagName)
+        {
+            Tag tag;
+            try
+            {
+                tag = GetTag(tagName);
+            }
+            catch (TagNotFoundException)
+            {
+                tag = CreateTag(tagName);
+            }
+
+            if (collection.CollectionTags.All(p => p.TagName != tag.Name))
+                collection.CollectionTags.Add(new CollectionTag { Collection = collection, Tag = tag });
         }
 
         private Tag CreateTag(string name)
         {
-            var tag = new Tag { Name = name };
+            var tag = _store.Tags.Create();
+            tag.Name = name;
             _store.Tags.Add(tag);
 
             return tag;
@@ -57,16 +75,11 @@ namespace PartyHero.Service
 
         public void Remove(Game game, string tagName)
         {
-            var newTags = new List<Tag>();
-            foreach (var tag in game.Tags)
-            {
-                if (tag.Name != tagName)
-                {
-                    newTags.Add(tag);
-                }
-            }
+            var uppercaseTagName = tagName.ToUpper();
+            var existingGameTag = game.GameTags.FirstOrDefault(p => p.TagName.ToUpper() == uppercaseTagName);
 
-            game.Tags = newTags;
+            if (existingGameTag != null)
+                game.GameTags.Remove(existingGameTag);
         }
 
         public Tag GetOrCreate(string name)

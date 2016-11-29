@@ -40,26 +40,8 @@ namespace PartyHero.Service
         public void Update()
         {
             CreateGames();
-            CreateTags();
+            //CreateTags();
             CreateCollections();
-        }
-
-        private void CreateTags()
-        {
-            if (!File.Exists(_tagConfigFilePath))
-                throw new DirectoryNotFoundException($"Tag configuration file \"{_tagConfigFilePath}\" not found.");
-
-            var json = File.ReadAllText(_tagConfigFilePath);
-            var tagConfigs = JsonConvert.DeserializeObject<TagConfig[]>(json);
-
-            foreach (var tagConfig in tagConfigs)
-            {
-                foreach (var tagName in tagConfig.TagNames)
-                {
-                    var game = _gameService.GetByName(tagConfig.GameName);
-                    _tagService.Add(game, tagName);
-                }
-            }
         }
 
         private void CreateGamesFromManifest(string manifestPath)
@@ -128,10 +110,11 @@ namespace PartyHero.Service
             }
         }
 
-        private Tag[] GetTagsFromSearch(string tagSearch)
+        private string[] GetTagsFromSearch(string tagSearch)
         {
+            return tagSearch.Split(',');
+            /*
             var tags = new List<Tag>();
-
             var tagNames = tagSearch.Split(',');
             foreach (var tagName in tagNames)
             {
@@ -142,6 +125,7 @@ namespace PartyHero.Service
             }
 
             return tags.ToArray();
+            */
         }
 
         private CollectionConfig GetCollectionConfig(string configFilePath)

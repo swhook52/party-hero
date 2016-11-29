@@ -1,9 +1,8 @@
-﻿using PartyHero.Data;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace PartyHero.Service.Stores
+namespace PartyHero.Data.Stores
 {
     public interface ICollectionStore
     {

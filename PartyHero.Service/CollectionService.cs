@@ -1,43 +1,52 @@
 ﻿using PartyHero.Data;
 using PartyHero.Service.Exceptions;
-using PartyHero.Service.Stores;
 using System.Linq;
+using PartyHero.Data.Stores;
 
 namespace PartyHero.Service
 {
     public interface ICollectionService
     {
-        void Add(string name, Tag[] tags);
+        void Add(string name, string[] tags);
         void Remove(string name);
         Collection Edit(Collection updatedCollection);
     }
 
     public class CollectionService : ICollectionService
     {
-        private IDataStore _store;
+        private readonly IDataStore _store;
+        private readonly ITagService _tagService;
 
-        public CollectionService(IDataStore store)
+        public CollectionService(IDataStore store, ITagService tagService)
         {
             _store = store;
+            _tagService = tagService;
         }
 
         private Collection GetCollection(string name)
         {
-            var collections = _store.Collections.FindAll(p => p.Name == name);
-            if (!collections.Any())
+            var collection = _store.Collections.SingleOrDefault(p => p.Name == name);
+            if (collection == null)
                 throw new CollectionNotFoundException(name);
 
-            return collections.First();
+            return collection;
         }
 
-        public void Add(string name, Tag[] tags)
+        public void Add(string name, string[] tagNames)
         {
             if (CollectionExists(name))
                 throw new CollectionAlreadyExistsException(name);
 
-            var collection = new Collection();
-            collection.Name = name;
-            collection.Tags = tags;
+            var collection = new Collection
+            {
+                Name = name
+            };
+
+            foreach (var tag in tagNames)
+            {
+                _tagService.Add(collection, tag);
+            }
+            _store.Collections.Add(collection);
         }
 
         public void Remove(string name)
@@ -50,13 +59,13 @@ namespace PartyHero.Service
         {
             var existingCollection = GetCollection(updatedCollection.Name);
             existingCollection.Name = updatedCollection.Name;
-            existingCollection.Tags = updatedCollection.Tags;
+            existingCollection.CollectionTags = updatedCollection.CollectionTags;
             return existingCollection;
         }
 
         private bool CollectionExists(string name)
         {
-            return _store.Collections.FindAll(p => p.Name == name).Any();
+            return _store.Collections.Any(p => p.Name == name);
         }
     }
 }

@@ -1,8 +1,8 @@
 ﻿using PartyHero.Data;
 using PartyHero.Service.Exceptions;
-using PartyHero.Service.Stores;
 using System;
 using System.Linq;
+using PartyHero.Data.Stores;
 
 namespace PartyHero.Service
 {
@@ -25,11 +25,11 @@ namespace PartyHero.Service
 
         private Game GetGame(string name)
         {
-            var games = _store.Games.FindAll(p => p.Name == name);
-            if (!games.Any())
+            var game = _store.Games.SingleOrDefault(p => p.Name == name);
+            if (game == null)
                 throw new GameNotFoundException(name);
 
-            return games.First();
+            return game;
         }
 
         public Game GetByName(string name)
@@ -44,7 +44,10 @@ namespace PartyHero.Service
 
         public Game[] Search(string title)
         {
-            return _store.Games.FindAll(p => p.Name.Contains(title) || p.Description.Contains(title)).ToArray();
+            return _store
+                .Games
+                .Where(p => p.Name.Contains(title) || p.Description.Contains(title))
+                .ToArray();
         }
 
         public Game Add(Game game)
@@ -56,7 +59,7 @@ namespace PartyHero.Service
         public bool Exists(string name)
         {
             var lowercaseName = name.ToLower();
-            return _store.Games.FindAll(p => p.Name.ToLower() == lowercaseName).Any();
+            return _store.Games.Any(p => p.Name.ToLower() == lowercaseName);
         }
     }
 }
