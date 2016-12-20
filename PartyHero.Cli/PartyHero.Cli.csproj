@@ -66,6 +66,10 @@
       <Project>{3f2670d3-44c5-4ed3-8ff6-d4bb23bda72b}</Project>
       <Name>PartyHero.Data</Name>
     </ProjectReference>
+    <ProjectReference Include="..\PartyHero.Launch\PartyHero.Launch.csproj">
+      <Project>{EFD96A46-2F4B-4849-B4E3-071D61D32A12}</Project>
+      <Name>PartyHero.Launch</Name>
+    </ProjectReference>
     <ProjectReference Include="..\PartyHero.Service\PartyHero.Service.csproj">
       <Project>{20d6541d-8eb1-4413-85f6-9927852677d7}</Project>
       <Name>PartyHero.Service</Name>

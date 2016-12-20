@@ -6,25 +6,31 @@ using System.Xml.Linq;
 using PartyHero.Data;
 using PartyHero.Data.Stores;
 using PartyHero.Service;
+using PartyHero.Launch;
+using PartyHero.Service.Exceptions;
 
 namespace PartyHero.Cli
 {
     class Program
     {
-        public static DataStore DataStore;
-        public static GameService GameService;
-        public static TagService TagService;
+        public static IDataStore DataStore;
+        public static IGameService GameService;
+        public static ITagService TagService;
+        public static ILaunchService LaunchService;
+        public static ISystemService SystemService;
 
         static void Main(string[] args)
         {
             DataStore = new DataStore();
             GameService = new GameService(DataStore);
             TagService = new TagService(DataStore);
+            LaunchService = new LaunchService(new ShellLauncher());
+            SystemService = new SystemService(DataStore);
 
             Console.WriteLine("Party Hero Command Line Interface");
             Console.WriteLine(" > party help");
             Console.WriteLine(" > party import game [path to xml database]");
-            Console.WriteLine(" > party launch [game name]");
+            Console.WriteLine(" > party launch [game name] [system name]");
 
             var command = ReadCommand();
             while (!string.IsNullOrEmpty(command))
@@ -60,14 +66,15 @@ namespace PartyHero.Cli
 
         private static void ParseLaunchGame(string[] subcommands)
         {
-            if (subcommands.Length == 0)
+            if (subcommands.Length < 2)
             {
                 ImportHelp();
                 return;
             }
 
             var gameName = subcommands[0];
-            Console.WriteLine($"Launching {gameName}");
+            var systemName = subcommands[1];
+            LaunchService.LaunchGame(gameName, systemName);
         }
 
         private static void ParseImport(string[] subcommands)
@@ -115,7 +122,7 @@ namespace PartyHero.Cli
             return Console.ReadLine();
         }
 
-        private static bool CreateGame(XElement gameElement)
+        private static bool CreateGame(Data.System system, XElement gameElement)
         {
             var gameName = gameElement.Attribute("name")?.Value;
             if (GameService.Exists(gameName))
@@ -136,7 +143,8 @@ namespace PartyHero.Cli
                 Genre = genre,
                 Rating = gameElement.Element("rating")?.Value,
                 CloneOf = gameElement.Element("cloneof")?.Value,
-                Enabled = gameElement.Element("enabled")?.Value.ToUpper() == "YES"
+                Enabled = gameElement.Element("enabled")?.Value.ToUpper() == "YES",
+                System = system
             };
 
             int year;
@@ -146,6 +154,7 @@ namespace PartyHero.Cli
                 AddTag(game, year.ToString());
             }
 
+            AddTag(game, system.Name);
             AddTag(game, genre);
             AddTag(game, manufacturer);
             AddTag(game, rating);
@@ -166,37 +175,78 @@ namespace PartyHero.Cli
         {
             try
             {
-                var gameElements = GetGamesFromFile(databasePath);
-                if (gameElements.Count > 0)
-                {
-                    var gamesImported = 0;
-                    var duplicateGames = 0;
-                    foreach (var gameElement in gameElements)
-                    {
-                        if (CreateGame(gameElement))
-                        {
-                            gamesImported++;
-                        }
-                        else
-                        {
-                            duplicateGames++;
-                        }
-                        DataStore.SaveChanges();
-                    }
-                    Console.WriteLine($"{gameElements.Count} games found. {gamesImported} games imported. {duplicateGames} duplicate games skipped.");
-                }
-                else
-                {
-                    Console.WriteLine("No games were found in the XML Database.");
-                }
+                var document = GetDatabaseDocument(databasePath);
+                var system = CreateSystemFromDatabase(document);
+                if (system == null)
+                    return;
+
+                CreateGamesFromDatabase(system, document);
             }
             catch (Exception e)
             {
                 Console.WriteLine(e.Message);
             }
         }
+        private static void CreateGamesFromDatabase(Data.System system, XDocument document)
+        {
+            var gameElements = document.Descendants("game").ToList();
+            if (gameElements.Count > 0)
+            {
+                var gamesImported = 0;
+                var duplicateGames = 0;
+                foreach (var gameElement in gameElements)
+                {
+                    if (CreateGame(system, gameElement))
+                    {
+                        gamesImported++;
+                    }
+                    else
+                    {
+                        duplicateGames++;
+                    }
+                    DataStore.SaveChanges();
+                }
+                Console.WriteLine($"{gameElements.Count} games found. {gamesImported} games imported. {duplicateGames} duplicate games skipped.");
+            }
+            else
+            {
+                Console.WriteLine("No games were found in the XML Database.");
+            }
 
-        private static List<XElement> GetGamesFromFile(string databasePath)
+        }
+
+        private static Data.System CreateSystemFromDatabase(XDocument document)
+        {
+            var header = document.Descendants("header").ToList();
+            if (header.Count == 0)
+            {
+                Console.WriteLine("System name not found in database.");
+                return null;
+            }
+
+            var systemName = header[0].Element("listname").Value;
+            try
+            {
+                var system = SystemService.GetByName(systemName);
+                Console.WriteLine("System already exists");
+                return system;
+            }
+            catch (SystemNotFoundException)
+            {
+                Console.WriteLine($"Importing {systemName}");
+                var system = new Data.System
+                {
+                    Name = systemName
+                };
+
+                DataStore.Systems.Add(system);
+                DataStore.SaveChanges();
+
+                return SystemService.GetByName(systemName);
+            }
+        }
+
+        private static XDocument GetDatabaseDocument(string databasePath)
         {
             if (string.IsNullOrEmpty(databasePath))
                 throw new FileNotFoundException("Invalid file path");
@@ -206,8 +256,7 @@ namespace PartyHero.Cli
             if (!File.Exists(path))
                 throw new FileNotFoundException("Enter a valid path to the XML database file that contains all the games for a particular emulator.");
 
-            var document = XDocument.Load(path);
-            return document.Descendants("game").ToList();
+            return XDocument.Load(path);
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PartyHero.Data
 {
@@ -35,5 +36,6 @@ namespace PartyHero.Data
         public string CloneOf { get; set; }
         public ICollection<GameTag> GameTags { get; set; }
         public bool Enabled { get; set; }
+        public System System { get; set; }
     }
 }

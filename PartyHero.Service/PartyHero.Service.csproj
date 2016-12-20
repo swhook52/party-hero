@@ -58,17 +58,24 @@
     <Compile Include="BootstrapService.cs" />
     <Compile Include="Exceptions\CollectionAlreadyExistsException.cs" />
     <Compile Include="Exceptions\CollectionNotFoundException.cs" />
+    <Compile Include="Exceptions\SystemNotFoundException.cs" />
     <Compile Include="Exceptions\TagNotFoundException.cs" />
     <Compile Include="Exceptions\GameNotFoundException.cs" />
     <Compile Include="GameService.cs" />
+    <Compile Include="LaunchService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="CollectionService.cs" />
+    <Compile Include="SystemService.cs" />
     <Compile Include="TagService.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\PartyHero.Data\PartyHero.Data.csproj">
       <Project>{3f2670d3-44c5-4ed3-8ff6-d4bb23bda72b}</Project>
       <Name>PartyHero.Data</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\PartyHero.Launch\PartyHero.Launch.csproj">
+      <Project>{EFD96A46-2F4B-4849-B4E3-071D61D32A12}</Project>
+      <Name>PartyHero.Launch</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
